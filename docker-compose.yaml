@@ -1,0 +1,13 @@
+services:
+  devcontainer:
+    image: golang:1.23.3-alpine3.20
+    entrypoint:
+      - sleep
+      - infinity      
+    init: true
+    environment:
+       - AWS_PROFILE=${AWS_PROFILE}
+    volumes:
+      - ./:/envconfig
+      - ~/.aws/:/root/.aws:ro
+      - ~/.aws/:/envconfig/.aws

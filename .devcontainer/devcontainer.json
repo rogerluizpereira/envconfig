@@ -1,0 +1,34 @@
+{
+	"name": "devcontainer",
+	
+	"dockerComposeFile": [
+		"../docker-compose.yaml"
+	],
+	
+	"service": "devcontainer",
+	"workspaceFolder": "/envconfig/",
+
+	// Configure tool-specific properties.
+	"customizations": {
+		// Configure properties specific to VS Code.
+		"vscode": {
+			"settings": {
+				"cSpell.language": "pt, en",
+				"cSpell.allowCompoundWords": true,
+				"cSpell.words": [
+					"devcontainer",
+					"dockerfile",
+					"minikube"
+				]
+			},
+			"extensions": [
+				"streetsidesoftware.code-spell-checker"
+			],
+			"mounts": [
+				"source=${localEnv:HOME}/.config/Code/User/settings.json,target=/root/.vscode-server/data/Machine/settings.json,type=bind"
+			]			
+		}
+	},
+	"remoteUser": "root"
+
+}
