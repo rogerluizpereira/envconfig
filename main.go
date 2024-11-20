@@ -15,8 +15,8 @@ import (
 )
 
 // Versão será injetada no build.
-// Ex. go build -ldflags "-X main.version=<versão>" -o <nomeExecutavel>
-var version = "indefinida"
+// Ex. go build -ldflags "-X main.Version=<versão>" -o <nomeExecutavel>
+var Version = "indefinida"
 
 // Expressões regulares para a validação de contexto
 var (
@@ -128,7 +128,7 @@ func main() {
 	flag.Parse()
 
 	if *versionFlag {
-		fmt.Printf("Versão: %s\n", version)
+		fmt.Printf("Versão: %s\n", Version)
 		os.Exit(0)
 	}
 
