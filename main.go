@@ -46,10 +46,12 @@ func processTemplateFile(inputFilePath string, outputFilePath string, profile st
 	scanner := bufio.NewScanner(inputFile)
 	writer := bufio.NewWriter(outputFile)
 	client := awsclient.NewAWSClient()
+	failed := 0 
 
 	for scanner.Scan() {
 		line := scanner.Text()
 
+		//Ignora comentários
 		if commentRegex.MatchString(line) {
 			fmt.Fprintln(writer, line)
 			continue
@@ -75,6 +77,7 @@ func processTemplateFile(inputFilePath string, outputFilePath string, profile st
 			secretValue, err := client.GetSecret(matches[1], profile, region)
 
 			if err != nil {
+				failed ++
 				log.Println(err)
 			} else if secretValue != "" {
 				if matches[3] == "" {
@@ -85,9 +88,11 @@ func processTemplateFile(inputFilePath string, outputFilePath string, profile st
 						if value, exists := secretMap[matches[3]]; exists {
 							return value
 						} else {
+							failed ++
 							log.Printf("chave '%s' não encontrada", matches[3])
 						}
 					} else {
+						failed ++
 						log.Println("erro ao parsear JSON: ", err)
 					}
 				}
@@ -96,7 +101,10 @@ func processTemplateFile(inputFilePath string, outputFilePath string, profile st
 		})
 
 		fmt.Fprintln(writer, processedLine)
+	}
 
+	if failed > 0 {
+		return fmt.Errorf("%v itens não puderam ser substituídos. Verifique o log para mais detalhes.", failed)
 	}
 
 	if err := writer.Flush(); err != nil {
