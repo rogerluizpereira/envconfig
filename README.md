@@ -27,7 +27,7 @@ Como bônus visando a simplicidade, ele também faz a substituição de entradas
 ## Modo de uso
 1. Para buildar o utilitário:
     ```bash
-    go build -ldflags "-X main.version=<versão>" -o envconfig 
+    go build -ldflags "-X main.Version=<versão>" -o envconfig 
 
     ```
 
