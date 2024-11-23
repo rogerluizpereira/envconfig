@@ -45,7 +45,7 @@ func processTemplateFile(inputFilePath string, outputFilePath string, profile st
 
 	scanner := bufio.NewScanner(inputFile)
 	writer := bufio.NewWriter(outputFile)
-	client := awsclient.NewAWSClient()
+	client := awsclient.NewAWSClient(profile, region)
 	failed := 0 
 
 	for scanner.Scan() {
@@ -74,7 +74,7 @@ func processTemplateFile(inputFilePath string, outputFilePath string, profile st
 		//Se não for identificado o valor do segredo para o placeholder, o mantém como na origem
 		processedLine = placeholderRegex.ReplaceAllStringFunc(processedLine, func(placeholder string) string {
 			matches := placeholderRegex.FindStringSubmatch(placeholder)
-			secretValue, err := client.GetSecret(matches[1], profile, region)
+			secretValue, err := client.GetSecret(matches[1])
 
 			if err != nil {
 				failed ++
@@ -124,7 +124,7 @@ func main() {
 
 	versionFlag := flag.Bool("version", false, "Exibe a versão do software")
 	flag.StringVar(&profile, "profile", "default", "Perfil AWS a ser utilizado")
-	flag.StringVar(&region, "region", "sa-east-1", "Região da AWS a ser utilizada")
+	flag.StringVar(&region, "region", "", "Região da AWS a ser utilizada")
 	flag.Parse()
 
 	if *versionFlag {

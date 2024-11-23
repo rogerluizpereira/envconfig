@@ -24,6 +24,8 @@ Para isso, este utilitário foi desenvolvido para buscar os segredos e substitui
 
 Como bônus visando a simplicidade, ele também faz a substituição de entradas por variáveis de ambiente correspondentes.
 
+### É importante considerar que esta estratégia, incorre em custos pelo volume de consumo de secrets.
+
 ## Modo de uso
 1. Para buildar o utilitário:
     ```bash
@@ -31,11 +33,32 @@ Como bônus visando a simplicidade, ele também faz a substituição de entradas
 
     ```
 
-2. Formato do placeholder de chaves 
+2. Formato do placeholder de chaves
+    
+    2.1  Nome do Secret
+
+    >Neste cenário a conta será definida a partir do profile default, ou do informado no parâmetro "-profile".\
+    A região será a a default associada ao profile ou a indicada no parâmetro "-region".
+
+    ``` {<nome-da-secret>[atributo]} ```
+    ```
+    {<nome-da-secret>[AWS_ACCESS_KEY_ID]}
+    {<nome-da-secret>[AWS_SECRET_ACCESS_KEY]}
+    ```
+
+    2.2  ARN
+    
     ``` {arn:aws:secretsmanager:<region>:<account>:secret:<nome-da-secret>[atributo]} ```
     ```
-    {arn:aws:secretsmanager:<region>:<account>:secret:<nome-da-secret>[AWS_ACCESS_KEY_ID]}
-    {arn:aws:secretsmanager:<region>:<account>:secret:<nome-da-secret>[AWS_ACCESS_KEY_ID]}
+    {arn:aws:secretsmanager:us-east-1:123456789012:secret:caminho/minha-secret[AWS_ACCESS_KEY_ID]}
+    {arn:aws:secretsmanager:us-east-1:123456789012:secret:caminho/minha-secret[AWS_SECRET_ACCESS_KEY]}
+    ```
+    2.3 ARN e Versão
+    
+    ``` {arn:aws:secretsmanager:<region>:<account>:secret:<nome-da-secret>-<versao>[atributo]} ```
+    ```
+    {arn:aws:secretsmanager:us-east-1:123456789012:secret:caminho/minha-secret-AbCdEf[AWS_ACCESS_KEY_ID]}
+    {arn:aws:secretsmanager:us-east-1:123456789012:secret:caminho/minha-secret-AbCdEf[AWS_SECRET_ACCESS_KEY]}
     ```
 
 3. Formato do placeholder de variáveis de ambiente
@@ -54,4 +77,4 @@ Como bônus visando a simplicidade, ele também faz a substituição de entradas
     nohup sh -c "sleep 5 && rm -f $TEMP_CONFIG_FILE" &
     ```
 
-A variável ```$AWS_PROFILE```, se preenchida com o conteúdo ```-profile NomeProfile``` possibilita a execução local, uma vez que neste ambiente não há como associar uma role. Já em uma execução no servidor, a inexistência desta variável provoca a execução do utilitário sem designar um profile e desta forma a role associada ao container será utilizada para recuperar as chaves.  
+A variável de ambiente ```$AWS_PROFILE```, se preenchida com o conteúdo ```-profile NomeProfile``` possibilita a execução local, uma vez que neste ambiente não há como associar uma role. Já em uma execução no servidor, a inexistência desta variável provoca a execução do utilitário sem designar um profile e desta forma a role associada ao container será utilizada para recuperar as chaves.  

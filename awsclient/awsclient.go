@@ -29,6 +29,8 @@ type AWSClient struct {
 	sessionsMutex sync.Mutex
 	servicesMutex sync.Mutex
 	secretsMutex  sync.Mutex
+	profile				string
+	defaultRegion string
 }
 
 // Expressões regulares usadas para avaliar identificadores de
@@ -41,34 +43,43 @@ var (
 )
 
 // Cria uma nova instância de AWSClient.
-func NewAWSClient() *AWSClient {
+func NewAWSClient(profile, defaultRegion string) *AWSClient {
 	return &AWSClient{
 		sessions: make(map[string]CacheItem[*session.Session]),
 		services: make(map[string]CacheItem[*secretsmanager.SecretsManager]),
 		secrets:  make(map[string]CacheItem[string]),
+		profile: profile,
+		defaultRegion: defaultRegion,
 	}
 }
 
 // Retorna uma sessão com a AWS.
 // Se a sessão foi criada anteriormente, retorna a referência existente, caso
 // contrário cria uma nova sessão, armazena sua referência a retorna ao chamador.
-func (client *AWSClient) getSession(profile, region string) (*session.Session, error) {
-	key := profile + ":" + region
+func (client *AWSClient) getSession(region string) (*session.Session, error) {
 	client.sessionsMutex.Lock()
 	defer client.sessionsMutex.Unlock()
 
-	if cacheItem, exists := client.sessions[key]; exists {
+	if cacheItem, exists := client.sessions[region]; exists {
 		return cacheItem.item, cacheItem.err
 	}
 
-	item, err := session.NewSessionWithOptions(
-		session.Options{
-			Profile: profile,
+	sessionOptions := session.Options{}
+	if region == "" {
+		sessionOptions = session.Options{
+			Profile: client.profile,
+			SharedConfigState: session.SharedConfigEnable,
+		}	
+	} else {
+		sessionOptions = session.Options{
+			Profile: client.profile,
 			Config: aws.Config{
 				Region: aws.String(region),
 			},
-		},
-	)
+		}
+	}
+
+	item, err := session.NewSessionWithOptions(sessionOptions)
 
 	cacheItem := CacheItem[*session.Session]{
 		item: item,
@@ -80,22 +91,21 @@ func (client *AWSClient) getSession(profile, region string) (*session.Session, e
 	}
 
 	if _, err := item.Config.Credentials.Get(); err != nil {
-		cacheItem.err = fmt.Errorf("perfil AWS '%s' não possui credenciais válidas, ou não está configurado corretamente. %w", profile, err)
+		cacheItem.err = fmt.Errorf("perfil AWS '%s' não possui credenciais válidas, ou não está configurado corretamente. %w", client.profile, err)
 	}
 
-	client.sessions[key] = cacheItem
+	client.sessions[region] = cacheItem
 	return cacheItem.item, cacheItem.err
 }
 
 // Retorna um client para o serviço AWS.
 // Se o client foi criado anteriormente, retorna a referência existente, caso
 // contrário cria um novo client, armazena sua referência a retorna ao chamador.
-func (client *AWSClient) getService(profile, region string) (*secretsmanager.SecretsManager, error) {
-	key := profile + ":" + region
+func (client *AWSClient) getService(region string) (*secretsmanager.SecretsManager, error) {
 	client.servicesMutex.Lock()
 	defer client.servicesMutex.Unlock()
 
-	if cacheItem, exists := client.services[key]; exists {
+	if cacheItem, exists := client.services[region]; exists {
 		return cacheItem.item, cacheItem.err
 	}
 
@@ -104,14 +114,14 @@ func (client *AWSClient) getService(profile, region string) (*secretsmanager.Sec
 		err:  nil,
 	}
 
-	session, err := client.getSession(profile, region)
+	session, err := client.getSession(region)
 	if err != nil {
 		cacheItem.err = fmt.Errorf("não foi possível obter o client para o secrect manager. %w", err)
 	} else {
 		cacheItem.item = secretsmanager.New(session)
 	}
 
-	client.services[key] = cacheItem
+	client.services[region] = cacheItem
 	return cacheItem.item, cacheItem.err
 }
 
@@ -123,19 +133,19 @@ func (client *AWSClient) isValidSecretIdentifier(identifier string) bool {
 	return arnRegex.MatchString(identifier) || (nameRegex.MatchString(identifier) && !nameRestrictionRegex.MatchString(identifier))
 }
 
-// Obtém a região a partir do ARN da secrect, ou usa a região padrão.
-func (client *AWSClient) selectRegion(identifier, defaultRegion string) string {
+// Obtém a região a partir do ARN da secrect
+func (client *AWSClient) getRegionFromIdentifier(identifier string) string {
 	matches := regionRegex.FindStringSubmatch(identifier)
 	if len(matches) > 1 {
 		return matches[1]
 	}
-	return defaultRegion
+	return client.defaultRegion
 }
 
 // Retorna o valor de um secret.
 // Se o secret foi carregado anteriormente, retorna a referência existente, caso
 // contrário carrega o secret, armazena sua referência a retorna ao chamador.
-func (client *AWSClient) GetSecret(identifier, profile, region string) (string, error) {
+func (client *AWSClient) GetSecret(identifier string) (string, error) {
 
 	if !client.isValidSecretIdentifier(identifier) {
 		return "", fmt.Errorf("identificador '%s' não é válido", identifier)
@@ -153,8 +163,8 @@ func (client *AWSClient) GetSecret(identifier, profile, region string) (string, 
 		err:  nil,
 	}
 
-	selectedRegion := client.selectRegion(identifier, region)
-	service, err := client.getService(profile, selectedRegion)
+	secretRegion := client.getRegionFromIdentifier(identifier)
+	service, err := client.getService(secretRegion)
 	if err != nil {
 		cacheItem.err = fmt.Errorf("não foi possível obter o segredo: %w", err)
 	} else {
