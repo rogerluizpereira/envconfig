@@ -14,7 +14,7 @@ Desta forma, as chaves poderiam ser rotacionadas a qualquer tempo, pois na proxi
 Os segredos também não estariam mais expostos nas definições do container ou nas suas variáveis de ambiente facilmente inspecionáveis pelo docker.
 
 >Claro que a proposta não impede integralmente o vazamento, pois quem puder logar no container em execução ou na imagem em cache contendo o arquivo de configuração atualizado, terá acesso às chaves, mas a proposta é reduzir a exposição e proporcionar rotações
-mais frequentes, até que as aplicações possan refatoradas utilizando técnicas mais adequadas. 
+mais frequentes, até que as aplicações possam ser refatoradas utilizando técnicas adequadas. 
 
 É possivel reduzir ainda pouco mais a exposição, caso a aplicação leia todas as configurações do arquivo em sua inicialização e não precisar mais dele durante sua execução, pois podemos preencher as configurações no arquivo usando um ponto de montagem em memória, e remover o arquivo logo após a inicialização. Desta forma os segredos estariam disponiveis apenas em memória na aplicação
 
